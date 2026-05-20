@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>安克创新 sz300866 · 股票分析</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --card-border: #2a2d3a;
+    --text: #e4e6ed;
+    --text-secondary: #8b8fa3;
+    --accent: #4f8cff;
+    --accent-glow: rgba(79,140,255,0.15);
+    --red: #ff4d4f;
+    --red-bg: rgba(255,77,79,0.1);
+    --green: #52c41a;
+    --green-bg: rgba(82,196,26,0.1);
+    --orange: #fa8c16;
+    --orange-bg: rgba(250,140,22,0.1);
+    --yellow: #fadb14;
+    --purple: #722ed1;
+    --purple-bg: rgba(114,46,209,0.1);
+    --blue: #1890ff;
+    --blue-bg: rgba(24,144,255,0.1);
+    --radius: 12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+  .container { max-width: 960px; margin: 0 auto; padding: 24px 16px 60px; }
+
+  /* Header */
+  .header { text-align: center; padding: 40px 0 24px; }
+  .header h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.5px; }
+  .header .sub { color: var(--text-secondary); font-size: 14px; margin-top: 6px; }
+  .header .price-line { margin-top: 16px; display: flex; align-items: baseline; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .header .price { font-size: 42px; font-weight: 800; color: var(--red); }
+  .header .change { font-size: 18px; color: var(--red); font-weight: 600; }
+
+  /* Snapshot Cards */
+  .snapshot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin: 20px 0 28px; }
+  .snap-card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px 12px; text-align: center; }
+  .snap-card .label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .snap-card .val { font-size: 20px; font-weight: 700; margin-top: 4px; }
+  .snap-card .val.red { color: var(--red); }
+  .snap-card .val.green { color: var(--green); }
+
+  /* Section Title */
+  .section-title { font-size: 20px; font-weight: 700; margin: 32px 0 16px; padding-left: 12px; border-left: 3px solid var(--accent); }
+
+  /* Median Table */
+  .median-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .median-table th { background: var(--card); color: var(--text-secondary); font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 10px 12px; text-align: center; border-bottom: 1px solid var(--card-border); }
+  .median-table td { padding: 10px 12px; text-align: center; font-size: 14px; border-bottom: 1px solid var(--card-border); }
+  .median-table tr:hover td { background: var(--accent-glow); }
+  .median-table .highlight { color: var(--accent); font-weight: 700; }
+  .median-note { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
+
+  /* Expert Card */
+  .expert-card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; position: relative; overflow: hidden; }
+  .expert-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+  .expert-card.trend::before { background: var(--accent); }
+  .expert-card.valuation::before { background: var(--orange); }
+  .expert-card.fundamental::before { background: var(--green); }
+  .expert-card.signal::before { background: var(--purple); }
+
+  .expert-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .expert-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .expert-card.trend .expert-icon { background: var(--accent-glow); }
+  .expert-card.valuation .expert-icon { background: var(--orange-bg); }
+  .expert-card.fundamental .expert-icon { background: var(--green-bg); }
+  .expert-card.signal .expert-icon { background: var(--purple-bg); }
+  .expert-name { font-size: 16px; font-weight: 700; }
+  .expert-tag { font-size: 11px; color: var(--text-secondary); margin-left: 4px; }
+
+  .anchor-block { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
+  .anchor-label { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.5px; }
+  .anchor-content { font-size: 14px; color: var(--text-secondary); line-height: 1.8; }
+  .anchor-content strong { color: var(--text); font-weight: 600; }
+
+  .point-list { list-style: none; padding: 0; }
+  .point-list li { padding: 6px 0; font-size: 14px; position: relative; padding-left: 18px; }
+  .point-list li::before { content: '→'; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+
+  .attitude-bar { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 700; margin-top: 8px; }
+  .attitude-bar.bullish { background: var(--red-bg); color: var(--red); }
+  .attitude-bar.neutral-bull { background: var(--orange-bg); color: var(--orange); }
+  .attitude-bar.neutral { background: rgba(250,212,20,0.1); color: var(--yellow); }
+  .attitude-bar.watch { background: var(--blue-bg); color: var(--blue); }
+  .attitude-bar.bearish { background: var(--green-bg); color: var(--green); }
+
+  /* Summary */
+  .summary-card { background: linear-gradient(135deg, var(--card), #222539); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 28px; margin: 24px 0; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
+  .summary-item { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 12px 14px; }
+  .summary-item .si-label { font-size: 11px; color: var(--text-secondary); }
+  .summary-item .si-val { font-size: 15px; font-weight: 700; margin-top: 4px; }
+  .summary-item .si-summary { font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.6; }
+
+  .route-box { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 16px; margin: 12px 0; }
+  .route-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .route-item { font-size: 14px; padding: 4px 0; padding-left: 16px; position: relative; }
+  .route-item::before { content: '•'; position: absolute; left: 0; color: var(--accent); }
+
+  .disclaimer { text-align: center; color: var(--text-secondary); font-size: 12px; margin-top: 40px; padding: 16px; border-top: 1px solid var(--card-border); }
+
+  /* Chart placeholder */
+  .chart-area { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; margin: 16px 0; }
+  .chart-area canvas { width: 100%; height: 220px; }
+
+  @media (max-width: 600px) {
+    .header h1 { font-size: 24px; }
+    .header .price { font-size: 32px; }
+    .snapshot-grid { grid-template-columns: repeat(3, 1fr); }
+    .expert-card { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>安克创新 <span style="color:var(--text-secondary);font-size:16px;font-weight:400;">sz300866</span></h1>
+    <div class="sub">消费电子 · 2020-08-24 上市 · 董事长：阳萌</div>
+    <div class="price-line">
+      <span class="price">129.68</span>
+      <span class="change">-4.93%</span>
+    </div>
+  </div>
+
+  <!-- Snapshot -->
+  <div class="snapshot-grid">
+    <div class="snap-card"><div class="label">市值</div><div class="val">695亿</div></div>
+    <div class="snap-card"><div class="label">PE(TTM)</div><div class="val">27.6</div></div>
+    <div class="snap-card"><div class="label">成交额</div><div class="val">7.29亿</div></div>
+    <div class="snap-card"><div class="label">换手率</div><div class="val">1.82%</div></div>
+    <div class="snap-card"><div class="label">52周高</div><div class="val red">148.80</div></div>
+    <div class="snap-card"><div class="label">52周低</div><div class="val green">91.21</div></div>
+  </div>
+
+  <div style="color:var(--text-secondary);font-size:12px;text-align:center;margin-bottom:8px;">*数据截止：2026-05-19 盘中</div>
+
+  <!-- 5-Year Median -->
+  <div class="section-title">近五年股价中位数</div>
+  <div class="chart-area">
+    <table class="median-table">
+      <thead><tr><th>年份</th><th>收盘价中位数</th><th>年度最高</th><th>年度最低</th><th>交易日数</th></tr></thead>
+      <tbody>
+        <tr><td>2022</td><td class="highlight">43.06</td><td>72.89</td><td>33.20</td><td>242</td></tr>
+        <tr><td>2023</td><td class="highlight">58.51</td><td>69.72</td><td>40.17</td><td>242</td></tr>
+        <tr><td>2024</td><td class="highlight">62.60</td><td>96.71</td><td>46.89</td><td>242</td></tr>
+        <tr><td>2025</td><td class="highlight">110.21</td><td>147.49</td><td>72.22</td><td>243</td></tr>
+        <tr><td>2026(至今)</td><td class="highlight">106.02</td><td>136.40</td><td>92.93</td><td>87</td></tr>
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid var(--accent);"><td><strong>5年整体</strong></td><td class="highlight" style="font-size:18px;">66.70</td><td>—</td><td>—</td><td>1056</td></tr>
+      </tfoot>
+    </table>
+    <div class="median-note">当前价 129.68 高于5年中位数 66.70 约 94%，高于2025年中位数 110.21 约 18%</div>
+    <canvas id="medianChart"></canvas>
+  </div>
+
+  <!-- 宏观环境 -->
+  <div class="section-title">宏观环境快扫</div>
+  <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:16px;margin-bottom:20px;font-size:14px;color:var(--text-secondary);">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+      <span>上证 <strong style="color:var(--red);">4170 +0.94%</strong></span>
+      <span>沪深300 <strong style="color:var(--red);">4854 +0.42%</strong></span>
+      <span>恒指 <strong style="color:var(--red);">25811 +0.53%</strong></span>
+    </div>
+    <ul class="point-list">
+      <li>美银5月调查显示全球基金经理股票配比增幅创纪录，市场风险偏好回升</li>
+      <li>AI算力资本开支持续扩张，海外四大巨头Q1资本开支同比+70%</li>
+      <li>碳酸锂价格下跌至18.16万/吨，部分商品价格偏弱</li>
+      <li>无重大系统性风险信号，整体环境<strong style="color:var(--text);">中性偏暖</strong></li>
+    </ul>
+  </div>
+
+  <!-- Expert: 产业趋势派 -->
+  <div class="section-title">圆桌讨论</div>
+
+  <div class="expert-card trend">
+    <div class="expert-header">
+      <div class="expert-icon">🌊</div>
+      <div><span class="expert-name">产业趋势派</span><span class="expert-tag">· 产业链拆解</span></div>
+    </div>
+    <div class="anchor-block">
+      <div class="anchor-label">【分析框架】</div>
+      <div class="anchor-content">拆产业链 + 核心卡位。当前驱动力：<strong>扩产升级阶段</strong>（消费电子出海→智能家居/储能扩展），最受益环节：<strong>品牌+渠道双驱动</strong>，安克本身即为最受益标的。本分析在能力边界内。</div>
+    </div>
+    <div class="anchor-block">
+      <div class="anchor-label">【关键数字】</div>
+      <div class="anchor-content">PE(TTM) <strong>27.6</strong> ｜ 市值 <strong>695亿</strong>（中大盘股） ｜ 一致预期增速 <strong>+26.2%</strong></div>
+    </div>
+    <ul class="point-list">
+      <li><strong>产业持续性判断</strong>：消费电子出海不是脉冲——安克从充电宝扩展到智能家居、储能、eufy安防，2025年营收305亿（同比仍在高增），产业持续性成立</li>
+      <li><strong>当前阶段拆解</strong>：安克已过"浅海"铺品类阶段，正在进入"深海"深耕阶段——做减法比堆数量难。SOLARBANK 4发布说明储能方向在加码，但产品召回和被起诉说明管理能力跟不上扩张速度</li>
+      <li><strong>估值硬约束</strong>：PE 27.6倍 + 增速26% → PEG约1.05，估值和增速基本匹配，不算便宜但也没泡沫。动态PE（基于2026E EPS 5.99）约21.7倍，可以接受</li>
+      <li><strong>短期信号偏弱</strong>：Q4净利润6.12亿环比Q3下降约20%，叠加被起诉+产品召回的负面新闻，短期催化不足</li>
+    </ul>
+    <div class="attitude-bar neutral-bull">🟠 中性偏多：产业方向对，但短期负面消化未完，等信号再确认</div>
+  </div>
+
+  <!-- Expert: 估值派 -->
+  <div class="expert-card valuation">
+    <div class="expert-header">
+      <div class="expert-icon">🧮</div>
+      <div><span class="expert-name">估值派</span><span class="expert-tag">· 估值定价</span></div>
+    </div>
+    <div class="anchor-block">
+      <div class="anchor-label">【分析框架】</div>
+      <div class="anchor-content">PEG（因为个股增速 >20%，PEG 比 PE Bands 更适用）。宏观层：中性偏暖，权益仓位50-60%，风格均衡。本分析在能力边界内。</div>
+    </div>
+    <div class="anchor-block">
+      <div class="anchor-label">【关键数字】</div>
+      <div class="anchor-content">
+        PE(TTM) <strong>27.6</strong> ｜ 一致预期增速 <strong>+26.2%</strong> ｜ PEG = 27.6 ÷ 26.2 ≈ <strong>1.05</strong><br>
+        一致目标价 <strong>148.82</strong>（当前129.68，上涨空间 <strong>14.8%</strong>）<br>
+        ⚠️ <strong>仅1家机构覆盖</strong>，预期可信度大幅打折
+      </div>
+    </div>
+    <ul class="point-list">
+      <li><strong>PEG判断</strong>：1.05 属于合理区间（<1便宜，1-1.5合理，>1.5偏贵），增速能消化当前估值，但安全边际不大</li>
+      <li><strong>Price = EPS × PE 拆解</strong>：2025年股价大涨主要是EPS驱动（净利润从约20亿→25.45亿），PE从低位回升；当前PE 27.6倍处于近5年中等偏上位</li>
+      <li><strong>机构覆盖异常</strong>：一致预期仅1家机构提供，目标价148.82的参考价值有限。正常消费电子龙头至少5-10家覆盖——这么少说明什么？要么是行业特殊性，要么是市场认知分歧大</li>
+      <li><strong>资金面校验</strong>：陆股通加仓5309万（6.94%持仓），社保+盖茨基金加仓——长线资金在进；但股东户数9个月从18134暴涨至30037（+65%），筹码明显分散，散户蜂拥而入</li>
+      <li><strong>腾讯教训提醒</strong>：基本面好+估值合理≠不会跌，资金面结构变化（筹码分散）可能压倒基本面</li>
+    </ul>
+    <div class="attitude-bar neutral">🟡 观望：PEG合理但机构覆盖严重不足+筹码分散，需等Q1财报验证EPS</div>
+  </div>
+
+  <!-- Expert: 基本面派 -->
+  <div class="expert-card fundamental">
+    <div class="expert-header">
+      <div class="expert-icon">🔬</div>
+      <div><span class="expert-name">基本面派</span><span class="expert-tag">· 财报审查</span></div>
+    </div>
+    <div class="anchor-block">
+      <div class="anchor-label">【分析框架】</div>
+      <div class="anchor-content">审查维度：行业趋势 / 管理层周期判断 / 估值分位。体感起点：消费电子品牌出海→数据验证。本分析在能力边界内。</div>
+    </div>
+    <div class="anchor-block">
+      <div class="anchor-label">【关键数字】</div>
+      <div class="anchor-content">
+        行业增速：消费电子出海持续高增 ｜ 近4季营收 <strong>305亿</strong>，净利润 <strong>25.45亿</strong>，EPS <strong>4.77</strong><br>
+        Q4净利润 <strong>6.12亿</strong>（环比Q3下降约20%）｜ 研发投入 <strong>28.93亿</strong>（占营收9.5%）
+      </div>
+    </div>
+    <ul class="point-list">
+      <li><strong>行业趋势</strong>：体感上，身边越来越多人买安克的充电器、耳机、智能家居——品牌认知在提升。数据验证：2025年营收305亿，增速仍然强劲。行业还在往上走</li>
+      <li><strong>管理层靠谱程度</strong>：阳萌从亚马逊卖家做到695亿市值公司，战略从充电宝→智能家居→储能→AI，方向判断总体正确。但"百款充电宝"之痛说明产品管理能力跟不上——做减法比堆数量难，这是管理层的考试</li>
+      <li><strong>财报检查</strong>：2025全年数据OK，但Q4环比Q3净利润下降20%是个警示信号——要么是季节性，要么是竞争加剧。需要Q1 2026财报验证</li>
+      <li><strong>估值分位</strong>：当前PE 27.6倍，从历史看属于中高位。2022年PE低点约20倍以下，2025年PE最高冲到40+倍。目前在中上区间，不算便宜但也不算极端</li>
+      <li><strong>负面信号</strong>：被起诉+产品召回——一次可以原谅，但如果反复出现就需要重新评估管理层的执行力</li>
+    </ul>
+    <div class="attitude-bar neutral-bull">🟠 中性偏多：基本面没变但Q4环比走弱+负面新闻需消化，先观察</div>
+  </div>
+
+  <!-- Expert: 信号派 -->
+  <div class="expert-card signal">
+    <div class="expert-header">
+      <div class="expert-icon">📡</div>
+      <div><span class="expert-name">信号派</span><span class="expert-tag">· 四层信号</span></div>
+    </div>
+    <div class="anchor-block">
+      <div class="anchor-label">【分析框架】</div>
+      <div class="anchor-content">四层信号对齐（政策 / 产业 / 资讯 / 资金）。方向是大前提，资金是介入时机的硬约束。</div>
+    </div>
+    <div class="anchor-block">
+      <div class="anchor-label">【关键数字】</div>
+      <div class="anchor-content">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>政策信号：<span style="color:var(--green);">✅</span> 出海+消费电子有政策支持</div>
+          <div>产业信号：<span style="color:var(--green);">✅</span> 营收持续高增</div>
+          <div>资讯信号：<span style="color:var(--orange);">⚠️</span> 被起诉+召回，负面为主</div>
+          <div>资金信号：<span style="color:var(--orange);">⚠️</span> 今日主力净流出，筹码分散</div>
+        </div>
+      </div>
+    </div>
+    <ul class="point-list">
+      <li><strong>政策+产业方向成立</strong>：消费电子出海是国家鼓励方向，安克营收增速证明产业持续性——方向没问题</li>
+      <li><strong>资讯层偏负面</strong>：近期被起诉+产品召回占新闻主导，市场情绪被压制。好逻辑≠好投资——方向对但负面消息没消化完，进去就是接飞刀</li>
+      <li><strong>资金层信号混乱</strong>：长线资金（陆股通、社保、盖茨基金）在加仓，但散户9个月涌入65%——筹码结构恶化；今日主力净流出2256万——短期资金在撤</li>
+      <li><strong>当前落入"方向对+资金未确认"区间</strong>：好逻辑≠好投资，等资金信号转正再动手</li>
+    </ul>
+    <div class="attitude-bar watch">🔵 等待：方向对但信号不对齐，等负面消化+资金回流确认</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="section-title">总结</div>
+  <div class="summary-card">
+    <div class="summary-grid">
+      <div class="summary-item"><div class="si-label">🌊 产业趋势派</div><div class="si-val" style="color:var(--orange);">🟠 中性偏多</div><div class="si-summary">产业方向对，但短期负面消化未完，等信号再确认</div></div>
+      <div class="summary-item"><div class="si-label">🧮 估值派</div><div class="si-val" style="color:var(--yellow);">🟡 观望</div><div class="si-summary">PEG合理但机构覆盖严重不足+筹码分散，需等Q1财报验证EPS</div></div>
+      <div class="summary-item"><div class="si-label">🔬 基本面派</div><div class="si-val" style="color:var(--orange);">🟠 中性偏多</div><div class="si-summary">基本面没变但Q4环比走弱+负面新闻需消化，先观察</div></div>
+      <div class="summary-item"><div class="si-label">📡 信号派</div><div class="si-val" style="color:var(--blue);">🔵 等待</div><div class="si-summary">方向对但信号不对齐，等负面消化+资金回流确认</div></div>
+    </div>
+
+    <div class="route-box">
+      <div class="route-title">💡 给小白的一句话</div>
+      <div style="font-size:16px;font-weight:600;padding:4px 0;">方向没问题但短期利空没消化完，先别急，等利空出尽再看。</div>
+    </div>
+
+    <div class="route-box">
+      <div class="route-title">🛤️ 操作路线图</div>
+      <div class="route-item"><strong>如果你更看重产业方向和估值</strong>：当前PEG≈1.05合理，可在125以下（PE约26倍）小仓位建观察仓（5%以内），等Q1财报验证后决定加仓</div>
+      <div class="route-item"><strong>如果你更担心短期负面和筹码分散</strong>：先观望，等被起诉事件有明确结论+产品召回影响出清+资金面连续3天净流入再考虑</div>
+      <div class="route-item"><strong>拿不准</strong>：先等，盯住Q1财报——Q1净利润若恢复环比增长=前者对，Q1继续环比下降=后者对</div>
+    </div>
+
+    <div class="route-box">
+      <div class="route-title">🔬 最值得验证的预测</div>
+      <div class="route-item">Q1 2026净利润能否恢复环比增长（>7.66亿） / 时间窗口：2026年4月底一季报发布</div>
+    </div>
+
+    <div class="route-box">
+      <div class="route-title">⚠️ 最值得重视的风险</div>
+      <div class="route-item">股东户数9个月暴增65%+仅1家机构覆盖 → 如果Q1不及预期，筹码松散可能引发快速下跌</div>
+    </div>
+  </div>
+
+  <div class="disclaimer">⚠️ 以上为 AI 模拟的内部高手观点讨论，不构成任何投资建议。投资有风险，决策靠自己。</div>
+
+</div>
+
+<script>
+// Draw median bar chart
+const ctx = document.getElementById('medianChart').getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+const canvas = document.getElementById('medianChart');
+const rect = canvas.parentElement.getBoundingClientRect();
+canvas.width = rect.width * dpr;
+canvas.height = 220 * dpr;
+canvas.style.width = rect.width + 'px';
+canvas.style.height = '220px';
+ctx.scale(dpr, dpr);
+
+const data = [
+  { year: '2022', median: 43.06, high: 72.89, low: 33.20 },
+  { year: '2023', median: 58.51, high: 69.72, low: 40.17 },
+  { year: '2024', median: 62.60, high: 96.71, low: 46.89 },
+  { year: '2025', median: 110.21, high: 147.49, low: 72.22 },
+  { year: '2026', median: 106.02, high: 136.40, low: 92.93 }
+];
+
+const W = rect.width;
+const H = 220;
+const pad = { top: 30, right: 30, bottom: 40, left: 50 };
+const chartW = W - pad.left - pad.right;
+const chartH = H - pad.top - pad.bottom;
+const maxVal = 160;
+const barGroupW = chartW / data.length;
+const barW = 36;
+
+// Grid lines
+ctx.strokeStyle = '#2a2d3a';
+ctx.lineWidth = 0.5;
+for (let i = 0; i <= 4; i++) {
+  const y = pad.top + (chartH / 4) * i;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, y);
+  ctx.lineTo(W - pad.right, y);
+  ctx.stroke();
+  ctx.fillStyle = '#8b8fa3';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(Math.round(maxVal - (maxVal / 4) * i), pad.left - 6, y + 4);
+}
+
+data.forEach((d, i) => {
+  const cx = pad.left + barGroupW * i + barGroupW / 2;
+  const barX = cx - barW / 2;
+
+  // High-Low range bar
+  const yHigh = pad.top + chartH * (1 - d.high / maxVal);
+  const yLow = pad.top + chartH * (1 - d.low / maxVal);
+  ctx.fillStyle = 'rgba(79,140,255,0.15)';
+  ctx.fillRect(barX, yHigh, barW, yLow - yHigh);
+  ctx.strokeStyle = 'rgba(79,140,255,0.4)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(barX, yHigh, barW, yLow - yHigh);
+
+  // Median bar
+  const yMed = pad.top + chartH * (1 - d.median / maxVal);
+  ctx.fillStyle = '#4f8cff';
+  ctx.fillRect(barX + 4, yMed, barW - 8, 3);
+
+  // Median value
+  ctx.fillStyle = '#4f8cff';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(d.median.toFixed(0), cx, yMed - 6);
+
+  // Year label
+  ctx.fillStyle = '#8b8fa3';
+  ctx.font = '11px sans-serif';
+  ctx.fillText(d.year, cx, H - pad.bottom + 18);
+});
+
+// Current price line
+const yPrice = pad.top + chartH * (1 - 129.68 / maxVal);
+ctx.setLineDash([4, 4]);
+ctx.strokeStyle = '#ff4d4f';
+ctx.lineWidth = 1.5;
+ctx.beginPath();
+ctx.moveTo(pad.left, yPrice);
+ctx.lineTo(W - pad.right, yPrice);
+ctx.stroke();
+ctx.setLineDash([]);
+ctx.fillStyle = '#ff4d4f';
+ctx.font = 'bold 11px sans-serif';
+ctx.textAlign = 'right';
+ctx.fillText('今日 129.68', W - pad.right, yPrice - 6);
+
+// 5-year median line
+const y5y = pad.top + chartH * (1 - 66.70 / maxVal);
+ctx.setLineDash([6, 3]);
+ctx.strokeStyle = '#fadb14';
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.moveTo(pad.left, y5y);
+ctx.lineTo(W - pad.right, y5y);
+ctx.stroke();
+ctx.setLineDash([]);
+ctx.fillStyle = '#fadb14';
+ctx.font = '11px sans-serif';
+ctx.textAlign = 'left';
+ctx.fillText('5年中位数 66.70', pad.left + 4, y5y - 6);
+
+// Legend
+ctx.font = '10px sans-serif';
+ctx.fillStyle = 'rgba(79,140,255,0.4)';
+ctx.fillRect(pad.left, 6, 12, 10);
+ctx.fillStyle = '#8b8fa3';
+ctx.fillText('年内区间', pad.left + 16, 14);
+ctx.fillStyle = '#4f8cff';
+ctx.fillRect(pad.left + 76, 9, 20, 3);
+ctx.fillText('中位数', pad.left + 100, 14);
+</script>
+
+</body>
+</html>
