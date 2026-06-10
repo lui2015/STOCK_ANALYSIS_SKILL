@@ -109,19 +109,11 @@
   .chart-area { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; margin: 16px 0; }
   .chart-area canvas { width: 100%; height: 220px; }
 
-  /* PE Bands */
-  .pe-bands { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
-  .pe-band-item { background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px; text-align: center; }
-  .pe-band-item .pb-label { font-size: 11px; color: var(--text-secondary); }
-  .pe-band-item .pb-pe { font-size: 13px; color: var(--accent); margin-top: 2px; }
-  .pe-band-item .pb-price { font-size: 18px; font-weight: 700; margin-top: 4px; }
-
   @media (max-width: 600px) {
     .header h1 { font-size: 24px; }
     .header .price { font-size: 32px; }
     .snapshot-grid { grid-template-columns: repeat(3, 1fr); }
     .expert-card { padding: 16px; }
-    .pe-bands { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -168,19 +160,6 @@
     </table>
     <div class="median-note">当前价 129.68 高于5年中位数 66.70 约 94%，高于2025年中位数 110.21 约 18%</div>
     <canvas id="medianChart"></canvas>
-  </div>
-
-  <!-- 5-Year Market Cap Change -->
-  <div class="section-title">近五年总市值变化</div>
-  <div class="chart-area">
-    <table class="median-table">
-      <thead><tr><th>年份</th><th>总市值(亿)</th><th>同比变化</th><th>市值趋势</th></tr></thead>
-      <tbody>
-        <!-- 动态生成：每年总市值 + 同比变化百分比 -->
-      </tbody>
-    </table>
-    <div class="median-note">总市值按年中位数股价 × 当前总股本估算 · 当前年份使用实时市值 · 涨红跌绿</div>
-    <canvas id="marketCapChart"></canvas>
   </div>
 
   <!-- 宏观环境 -->
@@ -459,168 +438,6 @@ ctx.fillText('年内区间', pad.left + 16, 14);
 ctx.fillStyle = '#4f8cff';
 ctx.fillRect(pad.left + 76, 9, 20, 3);
 ctx.fillText('中位数', pad.left + 100, 14);
-
-// ========== Market Cap Chart ==========
-const mcCtx = document.getElementById('marketCapChart').getContext('2d');
-const mcCanvas = document.getElementById('marketCapChart');
-const mcRect = mcCanvas.parentElement.getBoundingClientRect();
-const mcDpr = window.devicePixelRatio || 1;
-mcCanvas.width = mcRect.width * mcDpr;
-mcCanvas.height = 260 * mcDpr;
-mcCanvas.style.width = mcRect.width + 'px';
-mcCanvas.style.height = '260px';
-mcCtx.scale(mcDpr, mcDpr);
-
-// 动态填入：每年总市值(亿)和同比变化
-// totalShares = currentMarketCap / currentPrice
-// yearlyCap = yearlyMedianPrice * totalShares
-const mcData = [
-  { year: '2022', cap: 0, yoy: null },
-  { year: '2023', cap: 0, yoy: 0 },
-  { year: '2024', cap: 0, yoy: 0 },
-  { year: '2025', cap: 0, yoy: 0 },
-  { year: '2026', cap: 0, yoy: 0 }
-];
-
-const mcW = mcRect.width;
-const mcH = 260;
-const mcPad = { top: 35, right: 30, bottom: 45, left: 60 };
-const mcChartW = mcW - mcPad.left - mcPad.right;
-const mcChartH = mcH - mcPad.top - mcPad.bottom;
-const mcMax = Math.max(...mcData.map(d => d.cap)) * 1.15;
-const mcBarGroupW = mcChartW / mcData.length;
-const mcBarW = 48;
-
-// Grid lines
-mcCtx.strokeStyle = '#2a2d3a';
-mcCtx.lineWidth = 0.5;
-for (let i = 0; i <= 5; i++) {
-  const y = mcPad.top + (mcChartH / 5) * i;
-  mcCtx.beginPath();
-  mcCtx.moveTo(mcPad.left, y);
-  mcCtx.lineTo(mcW - mcPad.right, y);
-  mcCtx.stroke();
-  mcCtx.fillStyle = '#8b8fa3';
-  mcCtx.font = '10px sans-serif';
-  mcCtx.textAlign = 'right';
-  const val = Math.round(mcMax - (mcMax / 5) * i);
-  mcCtx.fillText(val.toLocaleString(), mcPad.left - 8, y + 4);
-}
-
-// Y-axis label
-mcCtx.save();
-mcCtx.translate(14, mcPad.top + mcChartH / 2);
-mcCtx.rotate(-Math.PI / 2);
-mcCtx.fillStyle = '#8b8fa3';
-mcCtx.font = '10px sans-serif';
-mcCtx.textAlign = 'center';
-mcCtx.fillText('亿港元', 0, 0);
-mcCtx.restore();
-
-mcData.forEach((d, i) => {
-  const cx = mcPad.left + mcBarGroupW * i + mcBarGroupW / 2;
-  const barX = cx - mcBarW / 2;
-  const barH = mcChartH * (d.cap / mcMax);
-  const barY = mcPad.top + mcChartH - barH;
-
-  // Bar color: red for growth, green for decline, blue for base year
-  let barColor, barColorLight;
-  if (d.yoy === null) {
-    barColor = '#4f8cff';
-    barColorLight = 'rgba(79,140,255,0.7)';
-  } else if (d.yoy >= 0) {
-    barColor = '#ff4d4f';
-    barColorLight = 'rgba(255,77,79,0.7)';
-  } else {
-    barColor = '#52c41a';
-    barColorLight = 'rgba(82,196,26,0.7)';
-  }
-
-  const grad = mcCtx.createLinearGradient(barX, barY, barX, mcPad.top + mcChartH);
-  grad.addColorStop(0, barColor);
-  grad.addColorStop(1, barColorLight);
-  mcCtx.fillStyle = grad;
-
-  // Rounded top bar
-  const r = 4;
-  mcCtx.beginPath();
-  mcCtx.moveTo(barX + r, barY);
-  mcCtx.lineTo(barX + mcBarW - r, barY);
-  mcCtx.quadraticCurveTo(barX + mcBarW, barY, barX + mcBarW, barY + r);
-  mcCtx.lineTo(barX + mcBarW, mcPad.top + mcChartH);
-  mcCtx.lineTo(barX, mcPad.top + mcChartH);
-  mcCtx.lineTo(barX, barY + r);
-  mcCtx.quadraticCurveTo(barX, barY, barX + r, barY);
-  mcCtx.fill();
-
-  // Market cap value
-  mcCtx.fillStyle = '#e4e6ed';
-  mcCtx.font = 'bold 11px sans-serif';
-  mcCtx.textAlign = 'center';
-  mcCtx.fillText(d.cap.toLocaleString(), cx, barY - 18);
-
-  // YoY change
-  if (d.yoy !== null) {
-    mcCtx.font = 'bold 10px sans-serif';
-    mcCtx.fillStyle = d.yoy >= 0 ? '#ff4d4f' : '#52c41a';
-    const yoyText = (d.yoy >= 0 ? '+' : '') + d.yoy.toFixed(1) + '%';
-    mcCtx.fillText(yoyText, cx, barY - 5);
-  } else {
-    mcCtx.font = '10px sans-serif';
-    mcCtx.fillStyle = '#8b8fa3';
-    mcCtx.fillText('基准年', cx, barY - 5);
-  }
-
-  // Year label
-  mcCtx.fillStyle = '#8b8fa3';
-  mcCtx.font = '11px sans-serif';
-  mcCtx.fillText(d.year, cx, mcH - mcPad.bottom + 16);
-});
-
-// Current market cap reference line
-const currentCap = mcData[mcData.length - 1].cap;
-const yMcCurrent = mcPad.top + mcChartH * (1 - currentCap / mcMax);
-mcCtx.setLineDash([4, 4]);
-mcCtx.strokeStyle = '#52c41a';
-mcCtx.lineWidth = 1.5;
-mcCtx.beginPath();
-mcCtx.moveTo(mcPad.left, yMcCurrent);
-mcCtx.lineTo(mcW - mcPad.right, yMcCurrent);
-mcCtx.stroke();
-mcCtx.setLineDash([]);
-mcCtx.fillStyle = '#52c41a';
-mcCtx.font = 'bold 11px sans-serif';
-mcCtx.textAlign = 'right';
-mcCtx.fillText('当前 ' + currentCap.toLocaleString() + '亿', mcW - mcPad.right, yMcCurrent - 6);
-
-// 5-year average line
-const mcAvg = mcData.reduce((a, b) => a + b.cap, 0) / mcData.length;
-const yMcAvg = mcPad.top + mcChartH * (1 - mcAvg / mcMax);
-mcCtx.setLineDash([6, 3]);
-mcCtx.strokeStyle = '#fadb14';
-mcCtx.lineWidth = 1;
-mcCtx.beginPath();
-mcCtx.moveTo(mcPad.left, yMcAvg);
-mcCtx.lineTo(mcW - mcPad.right, yMcAvg);
-mcCtx.stroke();
-mcCtx.setLineDash([]);
-mcCtx.fillStyle = '#fadb14';
-mcCtx.font = '10px sans-serif';
-mcCtx.textAlign = 'left';
-mcCtx.fillText('5年均值 ' + Math.round(mcAvg).toLocaleString() + '亿', mcPad.left + 4, yMcAvg - 6);
-
-// Legend
-mcCtx.font = '10px sans-serif';
-mcCtx.fillStyle = '#ff4d4f';
-mcCtx.fillRect(mcPad.left, 6, 12, 10);
-mcCtx.fillStyle = '#8b8fa3';
-mcCtx.fillText('市值增长', mcPad.left + 16, 14);
-mcCtx.fillStyle = '#52c41a';
-mcCtx.fillRect(mcPad.left + 76, 6, 12, 10);
-mcCtx.fillText('市值缩水', mcPad.left + 92, 14);
-mcCtx.fillStyle = '#4f8cff';
-mcCtx.fillRect(mcPad.left + 148, 6, 12, 10);
-mcCtx.fillText('基准年', mcPad.left + 164, 14);
 </script>
 
 </body>
